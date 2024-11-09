@@ -1,0 +1,22 @@
+version: "3.3"
+
+services:
+  homeassistant:
+    image: lscr.io/linuxserver/homeassistant:latest
+    container_name: homeassistant
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - TZ=$TZ
+      - DOCKER_MODS=linuxserver/mods:homeassistant-hacs
+    volumes:
+      - $HA_CONF_DIR/homeassistant:/config
+      - ../custom_components/ducobox-connectivity-board:/config/custom_components/ducobox-connectivity-board
+    ports:
+      - 8123:8123
+    restart: "no"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8123"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
