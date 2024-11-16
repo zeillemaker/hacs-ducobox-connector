@@ -1,9 +1,15 @@
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components.zeroconf import ZeroconfServiceInfo
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.core import callback
 from .const import DOMAIN
 import requests
 import asyncio
+import logging
+
+
+_LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema({
     vol.Required("base_url"): str
@@ -30,6 +36,54 @@ class DucoboxConnectivityBoardConfigFlow(config_entries.ConfigFlow, domain=DOMAI
 
         return self.async_show_form(
             step_id="user", data_schema=CONFIG_SCHEMA, errors=errors
+        )
+
+    async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> FlowResult:
+        """Handle discovery via mDNS."""
+        valid_names = ['duco_', 'duco ']
+        _LOGGER.warning(discovery_info.name)
+
+        if not any(discovery_info.name.lower().startswith(x) for x in valid_names):
+            return self.async_abort(reason="not_duco_air_device")
+
+        # Extract information from mDNS discovery
+        host = discovery_info.host
+        unique_id = discovery_info.name.split(" ")[1].strip("[]")
+
+        # Check if the device has already been configured
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured()
+
+        # Store discovery data in context
+        self.context["discovery"] = {
+            "host": host,
+            "unique_id": unique_id,
+        }
+
+        # Ask user for confirmation
+        return await self.async_step_confirm()
+
+    async def async_step_confirm(self, user_input=None) -> FlowResult:
+        """Ask user to confirm adding the discovered device."""
+        discovery = self.context["discovery"]
+
+        if user_input is not None:
+            # Create the entry upon confirmation
+            return self.async_create_entry(
+                title=f"Ducobox ({discovery['host']})",
+                data={
+                    "base_url": f"https://{discovery['host']}",  # Ducobox connectivity board requires https
+                    "unique_id": discovery["unique_id"],
+                },
+            )
+
+        # Show confirmation form to the user
+        return self.async_show_form(
+            step_id="confirm",
+            description_placeholders={
+                "host": discovery["host"],
+                "unique_id": discovery["unique_id"],
+            },
         )
 
     @staticmethod

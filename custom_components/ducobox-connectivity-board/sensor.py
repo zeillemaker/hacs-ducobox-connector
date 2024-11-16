@@ -12,7 +12,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    TEMP_CELSIUS,
+    UnitOfTemperature,
     UnitOfPressure,
     UnitOfTime,
     PERCENTAGE,
@@ -53,7 +53,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
     DucoboxSensorEntityDescription(
         key="TempOda",
         name="Outdoor Temperature",
-        native_unit_of_measurement=TEMP_CELSIUS,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: _process_temperature(
@@ -64,7 +64,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
     DucoboxSensorEntityDescription(
         key="TempSup",
         name="Supply Temperature",
-        native_unit_of_measurement=TEMP_CELSIUS,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: _process_temperature(
@@ -75,7 +75,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
     DucoboxSensorEntityDescription(
         key="TempEta",
         name="Extract Temperature",
-        native_unit_of_measurement=TEMP_CELSIUS,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: _process_temperature(
@@ -86,7 +86,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
     DucoboxSensorEntityDescription(
         key="TempEha",
         name="Exhaust Temperature",
-        native_unit_of_measurement=TEMP_CELSIUS,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: _process_temperature(
@@ -225,7 +225,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
         DucoboxNodeSensorEntityDescription(
             key='Temp',
             name='Temperature',
-            native_unit_of_measurement=TEMP_CELSIUS,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
             value_fn=lambda node: _process_node_temperature(
                 node.get('Sensor', {}).get('data', {}).get('Temp')
@@ -259,7 +259,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
         DucoboxNodeSensorEntityDescription(
             key='Temp',
             name='Temperature',
-            native_unit_of_measurement=TEMP_CELSIUS,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
             value_fn=lambda node: _process_node_temperature(
                 node.get('Sensor', {}).get('data', {}).get('Temp')
@@ -293,7 +293,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
         DucoboxNodeSensorEntityDescription(
             key='Temp',
             name='Temperature',
-            native_unit_of_measurement=TEMP_CELSIUS,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
             value_fn=lambda node: _process_node_temperature(
                 node.get('Sensor', {}).get('data', {}).get('Temp')

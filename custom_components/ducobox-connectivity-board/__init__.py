@@ -16,7 +16,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     base_url = entry.data["base_url"]
 
     try:
-        duco_client = DucoPy(base_url=base_url, verify=False)
+        duco_client = DucoPy(base_url=base_url, validate=False)
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN] = duco_client
     except Exception as ex:
