@@ -48,6 +48,8 @@ class DucoboxNodeSensorEntityDescription(SensorEntityDescription):
 
 SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
     # Temperature sensors
+    # relevant ducobox documentation: https://www.duco.eu/Wes/CDN/1/Attachments/installation-guide-DucoBox-Energy-Comfort-(Plus)-(en)_638635518879333838.pdf
+    # Oda = outdoor -> box
     DucoboxSensorEntityDescription(
         key="TempOda",
         name="Outdoor Temperature",
@@ -58,6 +60,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
             data.get('Ventilation', {}).get('Sensor', {}).get('TempOda', {}).get('Val')
         ),
     ),
+    # Sup = box -> house
     DucoboxSensorEntityDescription(
         key="TempSup",
         name="Supply Temperature",
@@ -68,9 +71,10 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
             data.get('Ventilation', {}).get('Sensor', {}).get('TempSup', {}).get('Val')
         ),
     ),
+    # Eta = house -> box
     DucoboxSensorEntityDescription(
         key="TempEta",
-        name="Exhaust Temperature",
+        name="Extract Temperature",
         native_unit_of_measurement=TEMP_CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -78,9 +82,10 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
             data.get('Ventilation', {}).get('Sensor', {}).get('TempEta', {}).get('Val')
         ),
     ),
+    # Eha = box -> outdoor
     DucoboxSensorEntityDescription(
         key="TempEha",
-        name="Extract Temperature",
+        name="Exhaust Temperature",
         native_unit_of_measurement=TEMP_CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -156,7 +161,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
     DucoboxSensorEntityDescription(
         key="TimeFilterRemain",
         name="Filter Time Remaining",
-        native_unit_of_measurement=UnitOfTime.MINUTES,  # Assuming the value is in minutes
+        native_unit_of_measurement=UnitOfTime.DAYS,  # Assuming the value is in days
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.DURATION,
         value_fn=lambda data: _process_timefilterremain(
@@ -180,11 +185,51 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
 NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
     'BOX': [
         DucoboxNodeSensorEntityDescription(
+            key='Mode',
+            name='Ventilation Mode',
+            value_fn=lambda node: node.get('Ventilation', {}).get('Mode'),
+            sensor_key='Mode',
+            node_type='BOX',
+        ),
+        DucoboxNodeSensorEntityDescription(
+            key='State',
+            name='Ventilation State',
+            value_fn=lambda node: node.get('Ventilation', {}).get('State'),
+            sensor_key='State',
+            node_type='BOX',
+        ),
+        DucoboxNodeSensorEntityDescription(
+            key='FlowLvlTgt',
+            name='Flow Level Target',
+            native_unit_of_measurement=PERCENTAGE,
+            value_fn=lambda node: node.get('Ventilation', {}).get('FlowLvlTgt'),
+            sensor_key='FlowLvlTgt',
+            node_type='BOX',
+        ),
+        DucoboxNodeSensorEntityDescription(
+            key='TimeStateRemain',
+            name='Time State Remaining',
+            native_unit_of_measurement=UnitOfTime.SECONDS,
+            value_fn=lambda node: node.get('Ventilation', {}).get('TimeStateRemain'),
+            sensor_key='TimeStateRemain',
+            node_type='BOX',
+        ),
+        DucoboxNodeSensorEntityDescription(
+            key='TimeStateEnd',
+            name='Time State End',
+            native_unit_of_measurement=UnitOfTime.SECONDS,
+            value_fn=lambda node: node.get('Ventilation', {}).get('TimeStateEnd'),
+            sensor_key='TimeStateEnd',
+            node_type='BOX',
+        ),
+        DucoboxNodeSensorEntityDescription(
             key='Temp',
             name='Temperature',
             native_unit_of_measurement=TEMP_CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
-            value_fn=lambda data: _process_node_temperature(data.get('Temp')),
+            value_fn=lambda node: _process_node_temperature(
+                node.get('Sensor', {}).get('data', {}).get('Temp')
+            ),
             sensor_key='Temp',
             node_type='BOX',
         ),
@@ -193,7 +238,9 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             name='Relative Humidity',
             native_unit_of_measurement=PERCENTAGE,
             device_class=SensorDeviceClass.HUMIDITY,
-            value_fn=lambda data: _process_node_humidity(data.get('Rh')),
+            value_fn=lambda node: _process_node_humidity(
+                node.get('Sensor', {}).get('data', {}).get('Rh')
+            ),
             sensor_key='Rh',
             node_type='BOX',
         ),
@@ -201,7 +248,9 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             key='IaqRh',
             name='Humidity Air Quality',
             native_unit_of_measurement=PERCENTAGE,
-            value_fn=lambda data: _process_node_iaq(data.get('IaqRh')),
+            value_fn=lambda node: _process_node_iaq(
+                node.get('Sensor', {}).get('data', {}).get('IaqRh')
+            ),
             sensor_key='IaqRh',
             node_type='BOX',
         ),
@@ -212,7 +261,9 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             name='Temperature',
             native_unit_of_measurement=TEMP_CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
-            value_fn=lambda data: _process_node_temperature(data.get('Temp')),
+            value_fn=lambda node: _process_node_temperature(
+                node.get('Sensor', {}).get('data', {}).get('Temp')
+            ),
             sensor_key='Temp',
             node_type='UCCO2',
         ),
@@ -221,7 +272,9 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             name='CO₂',
             native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
             device_class=SensorDeviceClass.CO2,
-            value_fn=lambda data: _process_node_co2(data.get('Co2')),
+            value_fn=lambda node: _process_node_co2(
+                node.get('Sensor', {}).get('data', {}).get('Co2')
+            ),
             sensor_key='Co2',
             node_type='UCCO2',
         ),
@@ -229,7 +282,9 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             key='IaqCo2',
             name='CO₂ Air Quality',
             native_unit_of_measurement=PERCENTAGE,
-            value_fn=lambda data: _process_node_iaq(data.get('IaqCo2')),
+            value_fn=lambda node: _process_node_iaq(
+                node.get('Sensor', {}).get('data', {}).get('IaqCo2')
+            ),
             sensor_key='IaqCo2',
             node_type='UCCO2',
         ),
@@ -240,7 +295,9 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             name='Temperature',
             native_unit_of_measurement=TEMP_CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
-            value_fn=lambda data: _process_node_temperature(data.get('Temp')),
+            value_fn=lambda node: _process_node_temperature(
+                node.get('Sensor', {}).get('data', {}).get('Temp')
+            ),
             sensor_key='Temp',
             node_type='BSRH',
         ),
@@ -249,7 +306,9 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             name='Relative Humidity',
             native_unit_of_measurement=PERCENTAGE,
             device_class=SensorDeviceClass.HUMIDITY,
-            value_fn=lambda data: _process_node_humidity(data.get('Rh')),
+            value_fn=lambda node: _process_node_humidity(
+                node.get('Sensor', {}).get('data', {}).get('Rh')
+            ),
             sensor_key='Rh',
             node_type='BSRH',
         ),
@@ -257,7 +316,9 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             key='IaqRh',
             name='Humidity Air Quality',
             native_unit_of_measurement=PERCENTAGE,
-            value_fn=lambda data: _process_node_iaq(data.get('IaqRh')),
+            value_fn=lambda node: _process_node_iaq(
+                node.get('Sensor', {}).get('data', {}).get('IaqRh')
+            ),
             sensor_key='IaqRh',
             node_type='BSRH',
         ),
@@ -324,7 +385,7 @@ def _process_uptime(value):
 def _process_timefilterremain(value):
     """Process filter time remaining."""
     if value is not None:
-        return value  # Assuming value is in minutes
+        return value  # Assuming value is in days
     return None
 
 def _process_bypass_position(value):
@@ -378,7 +439,7 @@ async def async_setup_entry(
         .get("Val", "unknown_mac")
     )
     device_id = mac_address.replace(":", "").lower() if mac_address else "unknown_mac"
-    device_name = f"ducobox_{device_id}"
+    device_name = f"{device_id}"
 
     box_name = coordinator.data.get("General", {}).get("Board", {}).get("BoxName", {}).get("Val", "Unknown Model")
     box_subtype = coordinator.data.get("General", {}).get("Board", {}).get("BoxSubTypeName", {}).get("Val", "")
@@ -412,10 +473,11 @@ async def async_setup_entry(
         node_id = node.get('Node')
         node_type = node.get('General', {}).get('Type', {}).get('Val', 'Unknown')
         node_addr = node.get('General', {}).get('Addr', 'Unknown')
-        node_name = f"Ducobox Node {node_id} ({node_type})"
+        # Updated node_name
+        node_name = f"{device_id}:{node_id}:{node_type}"
 
         # Create device info for the node
-        node_device_id = f"{device_id}_node_{node_id}"
+        node_device_id = f"{device_id}-{node_id}"
         node_device_info = DeviceInfo(
             identifiers={(DOMAIN, node_device_id)},
             name=node_name,
@@ -424,26 +486,21 @@ async def async_setup_entry(
             via_device=(DOMAIN, device_id),
         )
 
-        # Get sensor data safely
-        sensor = node.get('Sensor')
-        sensor_data = sensor.get('data', {}) if isinstance(sensor, dict) else {}
-
-        # For nodes with sensor data
-        if sensor_data:
-            node_sensors = NODE_SENSORS.get(node_type, [])
-            for description in node_sensors:
-                unique_id = f"{node_device_id}-{description.key}"
-                entities.append(
-                    DucoboxNodeSensorEntity(
-                        coordinator=coordinator,
-                        node_id=node_id,
-                        description=description,
-                        device_info=node_device_info,
-                        unique_id=unique_id,
-                        main_device_name=device_name,  # Pass main device name
-                        node_name=node_name,
-                    )
+        # Get the sensors for this node type
+        node_sensors = NODE_SENSORS.get(node_type, [])
+        for description in node_sensors:
+            unique_id = f"{node_device_id}-{description.key}"
+            entities.append(
+                DucoboxNodeSensorEntity(
+                    coordinator=coordinator,
+                    node_id=node_id,
+                    description=description,
+                    device_info=node_device_info,
+                    unique_id=unique_id,
+                    device_id=device_id,
+                    node_name=node_name,
                 )
+            )
 
     async_add_entities(entities)
 
@@ -481,7 +538,7 @@ class DucoboxNodeSensorEntity(CoordinatorEntity[DucoboxCoordinator], SensorEntit
         description: DucoboxNodeSensorEntityDescription,
         device_info: DeviceInfo,
         unique_id: str,
-        main_device_name: str,
+        device_id: str,
         node_name: str,
     ) -> None:
         """Initialize a Ducobox node sensor entity."""
@@ -490,8 +547,9 @@ class DucoboxNodeSensorEntity(CoordinatorEntity[DucoboxCoordinator], SensorEntit
         self._attr_device_info = device_info
         self._attr_unique_id = unique_id
         self._node_id = node_id
-        # Include the main device name in the entity name
-        self._attr_name = f"{main_device_name} {node_name} {description.name}"
+        # Updated entity name
+        self._attr_name = f"{node_name} {description.name}"
+        # self._attr_suggested_object_id = f"{device_id}_{node_name}_{description.name}".lower().replace(' ', '_')
 
     @property
     def native_value(self) -> Any:
@@ -500,7 +558,5 @@ class DucoboxNodeSensorEntity(CoordinatorEntity[DucoboxCoordinator], SensorEntit
         nodes = self.coordinator.data.get('Nodes', [])
         for node in nodes:
             if node.get('Node') == self._node_id:
-                sensor = node.get('Sensor')
-                sensor_data = sensor.get('data', {}) if isinstance(sensor, dict) else {}
-                return self.entity_description.value_fn(sensor_data)
+                return self.entity_description.value_fn(node)
         return None
