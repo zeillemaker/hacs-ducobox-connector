@@ -1,18 +1,20 @@
+import logging
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.zeroconf import ZeroconfServiceInfo
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.core import callback
+from homeassistant.helpers import selector
 from .const import DOMAIN
 import requests
 import asyncio
-import logging
-
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema({
-    vol.Required("base_url"): str
+    vol.Required("base_url"): selector.TextSelector(
+        selector.TextSelectorConfig(type='url')  # Using URL text selector
+    )
 })
 
 class DucoboxConnectivityBoardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -27,11 +29,16 @@ class DucoboxConnectivityBoardConfigFlow(config_entries.ConfigFlow, domain=DOMAI
         if user_input is not None:
             base_url = user_input["base_url"]
             try:
+                # Optional: Perform additional URL validation if needed
+                parsed_url = requests.utils.urlparse(base_url)
+                if parsed_url.scheme not in ('https'):  # connectivity board only supports https
+                    raise ValueError('Invalid URL scheme')
+                # Attempt to connect to the device
                 await asyncio.get_running_loop().run_in_executor(
                     None, lambda: requests.get(f"{base_url.rstrip('/')}/info", verify=False)
                 )
                 return self.async_create_entry(title="Ducobox Connectivity Board", data=user_input)
-            except requests.RequestException:
+            except (ValueError, requests.RequestException):
                 errors["base_url"] = "cannot_connect"
 
         return self.async_show_form(
@@ -40,14 +47,19 @@ class DucoboxConnectivityBoardConfigFlow(config_entries.ConfigFlow, domain=DOMAI
 
     async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> FlowResult:
         """Handle discovery via mDNS."""
+        _LOGGER.debug(f"Discovery info: {discovery_info}")
+
         valid_names = ['duco_', 'duco ']
 
         if not any(discovery_info.name.lower().startswith(x) for x in valid_names):
             return self.async_abort(reason="not_duco_air_device")
 
         # Extract information from mDNS discovery
-        host = discovery_info.host
+        # Use the IP address directly to avoid '.local' issues
+        host = discovery_info.addresses[0]
         unique_id = discovery_info.name.split(" ")[1].strip("[]")
+
+        _LOGGER.debug(f"Extracted host: {host}, unique_id: {unique_id}")
 
         # Check if the device has already been configured
         await self.async_set_unique_id(unique_id)
@@ -71,7 +83,7 @@ class DucoboxConnectivityBoardConfigFlow(config_entries.ConfigFlow, domain=DOMAI
             return self.async_create_entry(
                 title=f"Ducobox ({discovery['host']})",
                 data={
-                    "base_url": f"https://{discovery['host']}",  # Ducobox connectivity board requires https
+                    "base_url": f"https://{discovery['host']}",
                     "unique_id": discovery["unique_id"],
                 },
             )

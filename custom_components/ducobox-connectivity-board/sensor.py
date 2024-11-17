@@ -416,8 +416,13 @@ class DucoboxCoordinator(DataUpdateCoordinator):
 
     def _fetch_data(self) -> dict:
         duco_client = self.hass.data[DOMAIN]
+
         data = duco_client.get_info()
+        _LOGGER.debug(f"Data received from /info: {data}")
+
         nodes_response = duco_client.get_nodes()
+        _LOGGER.debug(f"Data received from /nodes: {nodes_response}")
+
         # Convert nodes_response.Nodes (which is a list of NodeInfo objects) to list of dicts
         data['Nodes'] = [node.dict() for node in nodes_response.Nodes]
         return data

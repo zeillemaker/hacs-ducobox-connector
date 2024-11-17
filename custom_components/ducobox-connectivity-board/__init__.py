@@ -14,9 +14,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ducobox from a config entry."""
     base_url = entry.data["base_url"]
+    _LOGGER.debug(f"Base URL from config entry: {base_url}")
 
     try:
         duco_client = DucoPy(base_url=base_url, verify=False)
+        _LOGGER.debug(f"DucoPy initialized with base URL: {base_url}")
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN] = duco_client
     except Exception as ex:
