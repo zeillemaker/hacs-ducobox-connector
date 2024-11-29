@@ -24,10 +24,21 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
+    UpdateFailed,
 )
 from .const import DOMAIN, SCAN_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def safe_get(data, *keys):
+    """Safely get nested keys from a dict."""
+    for key in keys:
+        if isinstance(data, dict):
+            data = data.get(key)
+        else:
+            return None
+    return data
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -57,7 +68,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: _process_temperature(
-            data.get('Ventilation', {}).get('Sensor', {}).get('TempOda', {}).get('Val')
+            safe_get(data, 'Ventilation', 'Sensor', 'TempOda', 'Val')
         ),
     ),
     # Sup = box -> house
@@ -68,7 +79,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: _process_temperature(
-            data.get('Ventilation', {}).get('Sensor', {}).get('TempSup', {}).get('Val')
+            safe_get(data, 'Ventilation', 'Sensor', 'TempSup', 'Val')
         ),
     ),
     # Eta = house -> box
@@ -79,7 +90,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: _process_temperature(
-            data.get('Ventilation', {}).get('Sensor', {}).get('TempEta', {}).get('Val')
+            safe_get(data, 'Ventilation', 'Sensor', 'TempEta', 'Val')
         ),
     ),
     # Eha = box -> outdoor
@@ -90,7 +101,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: _process_temperature(
-            data.get('Ventilation', {}).get('Sensor', {}).get('TempEha', {}).get('Val')
+            safe_get(data, 'Ventilation', 'Sensor', 'TempEha', 'Val')
         ),
     ),
     # Fan speed sensors
@@ -101,7 +112,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.SPEED,
         value_fn=lambda data: _process_speed(
-            data.get('Ventilation', {}).get('Fan', {}).get('SpeedSup', {}).get('Val')
+            safe_get(data, 'Ventilation', 'Fan', 'SpeedSup', 'Val')
         ),
     ),
     DucoboxSensorEntityDescription(
@@ -111,7 +122,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.SPEED,
         value_fn=lambda data: _process_speed(
-            data.get('Ventilation', {}).get('Fan', {}).get('SpeedEha', {}).get('Val')
+            safe_get(data, 'Ventilation', 'Fan', 'SpeedEha', 'Val')
         ),
     ),
     # Pressure sensors
@@ -122,7 +133,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.PRESSURE,
         value_fn=lambda data: _process_pressure(
-            data.get('Ventilation', {}).get('Fan', {}).get('PressSup', {}).get('Val')
+            safe_get(data, 'Ventilation', 'Fan', 'PressSup', 'Val')
         ),
     ),
     DucoboxSensorEntityDescription(
@@ -132,7 +143,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.PRESSURE,
         value_fn=lambda data: _process_pressure(
-            data.get('Ventilation', {}).get('Fan', {}).get('PressEha', {}).get('Val')
+            safe_get(data, 'Ventilation', 'Fan', 'PressEha', 'Val')
         ),
     ),
     # Wi-Fi signal strength
@@ -143,7 +154,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.SIGNAL_STRENGTH,
         value_fn=lambda data: _process_rssi(
-            data.get('General', {}).get('Lan', {}).get('RssiWifi', {}).get('Val')
+            safe_get(data, 'General', 'Lan', 'RssiWifi', 'Val')
         ),
     ),
     # Device uptime
@@ -154,7 +165,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.DURATION,
         value_fn=lambda data: _process_uptime(
-            data.get('General', {}).get('Board', {}).get('UpTime', {}).get('Val')
+            safe_get(data, 'General', 'Board', 'UpTime', 'Val')
         ),
     ),
     # Filter time remaining
@@ -165,7 +176,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.DURATION,
         value_fn=lambda data: _process_timefilterremain(
-            data.get('HeatRecovery', {}).get('General', {}).get('TimeFilterRemain', {}).get('Val')
+            safe_get(data, 'HeatRecovery', 'General', 'TimeFilterRemain', 'Val')
         ),
     ),
     # Bypass position
@@ -175,7 +186,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: _process_bypass_position(
-            data.get('HeatRecovery', {}).get('Bypass', {}).get('Pos', {}).get('Val')
+            safe_get(data, 'HeatRecovery', 'Bypass', 'Pos', 'Val')
         ),
     ),
     # Add additional sensors here if needed
@@ -187,14 +198,14 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
         DucoboxNodeSensorEntityDescription(
             key='Mode',
             name='Ventilation Mode',
-            value_fn=lambda node: node.get('Ventilation', {}).get('Mode'),
+            value_fn=lambda node: safe_get(node, 'Ventilation', 'Mode'),
             sensor_key='Mode',
             node_type='BOX',
         ),
         DucoboxNodeSensorEntityDescription(
             key='State',
             name='Ventilation State',
-            value_fn=lambda node: node.get('Ventilation', {}).get('State'),
+            value_fn=lambda node: safe_get(node, 'Ventilation', 'State'),
             sensor_key='State',
             node_type='BOX',
         ),
@@ -202,7 +213,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             key='FlowLvlTgt',
             name='Flow Level Target',
             native_unit_of_measurement=PERCENTAGE,
-            value_fn=lambda node: node.get('Ventilation', {}).get('FlowLvlTgt'),
+            value_fn=lambda node: safe_get(node, 'Ventilation', 'FlowLvlTgt'),
             sensor_key='FlowLvlTgt',
             node_type='BOX',
         ),
@@ -210,7 +221,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             key='TimeStateRemain',
             name='Time State Remaining',
             native_unit_of_measurement=UnitOfTime.SECONDS,
-            value_fn=lambda node: node.get('Ventilation', {}).get('TimeStateRemain'),
+            value_fn=lambda node: safe_get(node, 'Ventilation', 'TimeStateRemain'),
             sensor_key='TimeStateRemain',
             node_type='BOX',
         ),
@@ -218,7 +229,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             key='TimeStateEnd',
             name='Time State End',
             native_unit_of_measurement=UnitOfTime.SECONDS,
-            value_fn=lambda node: node.get('Ventilation', {}).get('TimeStateEnd'),
+            value_fn=lambda node: safe_get(node, 'Ventilation', 'TimeStateEnd'),
             sensor_key='TimeStateEnd',
             node_type='BOX',
         ),
@@ -228,7 +239,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
             value_fn=lambda node: _process_node_temperature(
-                node.get('Sensor', {}).get('data', {}).get('Temp')
+                safe_get(node, 'Sensor', 'data', 'Temp')
             ),
             sensor_key='Temp',
             node_type='BOX',
@@ -239,7 +250,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             native_unit_of_measurement=PERCENTAGE,
             device_class=SensorDeviceClass.HUMIDITY,
             value_fn=lambda node: _process_node_humidity(
-                node.get('Sensor', {}).get('data', {}).get('Rh')
+                safe_get(node, 'Sensor', 'data', 'Rh')
             ),
             sensor_key='Rh',
             node_type='BOX',
@@ -249,7 +260,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             name='Humidity Air Quality',
             native_unit_of_measurement=PERCENTAGE,
             value_fn=lambda node: _process_node_iaq(
-                node.get('Sensor', {}).get('data', {}).get('IaqRh')
+                safe_get(node, 'Sensor', 'data', 'IaqRh')
             ),
             sensor_key='IaqRh',
             node_type='BOX',
@@ -262,7 +273,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
             value_fn=lambda node: _process_node_temperature(
-                node.get('Sensor', {}).get('data', {}).get('Temp')
+                safe_get(node, 'Sensor', 'data', 'Temp')
             ),
             sensor_key='Temp',
             node_type='UCCO2',
@@ -273,7 +284,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
             device_class=SensorDeviceClass.CO2,
             value_fn=lambda node: _process_node_co2(
-                node.get('Sensor', {}).get('data', {}).get('Co2')
+                safe_get(node, 'Sensor', 'data', 'Co2')
             ),
             sensor_key='Co2',
             node_type='UCCO2',
@@ -283,7 +294,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             name='CO₂ Air Quality',
             native_unit_of_measurement=PERCENTAGE,
             value_fn=lambda node: _process_node_iaq(
-                node.get('Sensor', {}).get('data', {}).get('IaqCo2')
+                safe_get(node, 'Sensor', 'data', 'IaqCo2')
             ),
             sensor_key='IaqCo2',
             node_type='UCCO2',
@@ -296,7 +307,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
             value_fn=lambda node: _process_node_temperature(
-                node.get('Sensor', {}).get('data', {}).get('Temp')
+                safe_get(node, 'Sensor', 'data', 'Temp')
             ),
             sensor_key='Temp',
             node_type='BSRH',
@@ -307,7 +318,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             native_unit_of_measurement=PERCENTAGE,
             device_class=SensorDeviceClass.HUMIDITY,
             value_fn=lambda node: _process_node_humidity(
-                node.get('Sensor', {}).get('data', {}).get('Rh')
+                safe_get(node, 'Sensor', 'data', 'Rh')
             ),
             sensor_key='Rh',
             node_type='BSRH',
@@ -317,7 +328,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             name='Humidity Air Quality',
             native_unit_of_measurement=PERCENTAGE,
             value_fn=lambda node: _process_node_iaq(
-                node.get('Sensor', {}).get('data', {}).get('IaqRh')
+                safe_get(node, 'Sensor', 'data', 'IaqRh')
             ),
             sensor_key='IaqRh',
             node_type='BSRH',
@@ -412,20 +423,33 @@ class DucoboxCoordinator(DataUpdateCoordinator):
             return await self.hass.async_add_executor_job(self._fetch_data)
         except Exception as e:
             _LOGGER.error("Failed to fetch data from Ducobox API: %s", e)
-            return {}
+            raise UpdateFailed(f"Failed to fetch data from Ducobox API: {e}") from e
 
     def _fetch_data(self) -> dict:
-        duco_client = self.hass.data[DOMAIN]
+        duco_client = self.hass.data.get(DOMAIN)
 
-        data = duco_client.get_info()
-        _LOGGER.debug(f"Data received from /info: {data}")
+        if duco_client is None:
+            raise Exception("Duco client is not initialized")
 
-        nodes_response = duco_client.get_nodes()
-        _LOGGER.debug(f"Data received from /nodes: {nodes_response}")
+        try:
+            data = duco_client.get_info()
+            _LOGGER.debug(f"Data received from /info: {data}")
 
-        # Convert nodes_response.Nodes (which is a list of NodeInfo objects) to list of dicts
-        data['Nodes'] = [node.dict() for node in nodes_response.Nodes]
-        return data
+            if data is None:
+                data = {}
+
+            nodes_response = duco_client.get_nodes()
+            _LOGGER.debug(f"Data received from /nodes: {nodes_response}")
+
+            if nodes_response and hasattr(nodes_response, 'Nodes'):
+                data['Nodes'] = [node.dict() for node in nodes_response.Nodes]
+            else:
+                data['Nodes'] = []
+
+            return data
+        except Exception as e:
+            _LOGGER.error("Error fetching data from Ducobox API: %s", e)
+            raise
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -438,16 +462,13 @@ async def async_setup_entry(
 
     # Retrieve MAC address and format device ID and name
     mac_address = (
-        coordinator.data.get("General", {})
-        .get("Lan", {})
-        .get("Mac", {})
-        .get("Val", "unknown_mac")
+        safe_get(coordinator.data, "General", "Lan", "Mac", "Val") or "unknown_mac"
     )
     device_id = mac_address.replace(":", "").lower() if mac_address else "unknown_mac"
     device_name = f"{device_id}"
 
-    box_name = coordinator.data.get("General", {}).get("Board", {}).get("BoxName", {}).get("Val", "Unknown Model")
-    box_subtype = coordinator.data.get("General", {}).get("Board", {}).get("BoxSubTypeName", {}).get("Val", "")
+    box_name = safe_get(coordinator.data, "General", "Board", "BoxName", "Val") or "Unknown Model"
+    box_subtype = safe_get(coordinator.data, "General", "Board", "BoxSubTypeName", "Val") or ""
     box_model = f"{box_name} {box_subtype}".replace('_', ' ').strip()
 
     device_info = DeviceInfo(
@@ -455,7 +476,7 @@ async def async_setup_entry(
         name=device_name,
         manufacturer="Ducobox",
         model=box_model,
-        sw_version=coordinator.data.get("General", {}).get("Board", {}).get("SwVersionBox", {}).get("Val", "Unknown Version"),
+        sw_version=safe_get(coordinator.data, "General", "Board", "SwVersionBox", "Val") or "Unknown Version",
     )
 
     entities: list[SensorEntity] = []
@@ -472,12 +493,12 @@ async def async_setup_entry(
             )
         )
 
-    # Add node sensors
+    # Add node sensors if data is available
     nodes = coordinator.data.get('Nodes', [])
     for node in nodes:
         node_id = node.get('Node')
-        node_type = node.get('General', {}).get('Type', {}).get('Val', 'Unknown')
-        node_addr = node.get('General', {}).get('Addr', 'Unknown')
+        node_type = safe_get(node, 'General', 'Type', 'Val') or 'Unknown'
+        node_addr = safe_get(node, 'General', 'Addr') or 'Unknown'
         node_name = f"{device_id}:{node_id}:{node_type}"
 
         # Create device info for the node
@@ -527,9 +548,18 @@ class DucoboxSensorEntity(CoordinatorEntity[DucoboxCoordinator], SensorEntity):
         self._attr_name = f"{device_info['name']} {description.name}"
 
     @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        return self.entity_description.value_fn(self.coordinator.data)
+        try:
+            return self.entity_description.value_fn(self.coordinator.data)
+        except Exception as e:
+            _LOGGER.debug(f"Error getting value for {self.name}: {e}")
+            return None
 
 class DucoboxNodeSensorEntity(CoordinatorEntity[DucoboxCoordinator], SensorEntity):
     """Representation of a Ducobox node sensor entity."""
@@ -554,11 +584,19 @@ class DucoboxNodeSensorEntity(CoordinatorEntity[DucoboxCoordinator], SensorEntit
         self._attr_name = f"{node_name} {description.name}"
 
     @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        # Fetch the latest data for this node
         nodes = self.coordinator.data.get('Nodes', [])
         for node in nodes:
             if node.get('Node') == self._node_id:
-                return self.entity_description.value_fn(node)
+                try:
+                    return self.entity_description.value_fn(node)
+                except Exception as e:
+                    _LOGGER.debug(f"Error getting value for {self.name}: {e}")
+                    return None
         return None
