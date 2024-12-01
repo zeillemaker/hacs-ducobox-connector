@@ -409,13 +409,15 @@ def _process_bypass_position(value):
 class DucoboxCoordinator(DataUpdateCoordinator):
     """Coordinator to manage data updates for Ducobox sensors."""
 
-    def __init__(self, hass: HomeAssistant):
+    def __init__(self, hass: HomeAssistant, duco_client: DucoPy):
         super().__init__(
             hass,
             _LOGGER,
             name="Ducobox Connectivity Board",
             update_interval=SCAN_INTERVAL,
         )
+
+        self.duco_client = duco_client
 
     async def _async_update_data(self) -> dict:
         """Fetch data from the Ducobox API."""
@@ -426,7 +428,7 @@ class DucoboxCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Failed to fetch data from Ducobox API: {e}") from e
 
     def _fetch_data(self) -> dict:
-        duco_client = self.hass.data.get(DOMAIN)
+        duco_client = self.duco_client
 
         if duco_client is None:
             raise Exception("Duco client is not initialized")
@@ -457,7 +459,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Ducobox sensors from a config entry."""
-    coordinator = DucoboxCoordinator(hass)
+    duco_client = hass.data[DOMAIN][entry.entry_id]
+
+    coordinator = DucoboxCoordinator(hass, duco_client)
     await coordinator.async_config_entry_first_refresh()
 
     # Retrieve MAC address and format device ID and name
