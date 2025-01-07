@@ -31,7 +31,7 @@ class DucoboxConnectivityBoardConfigFlow(config_entries.ConfigFlow, domain=DOMAI
             try:
                 # Optional: Perform additional URL validation if needed
                 parsed_url = requests.utils.urlparse(base_url)
-                if parsed_url.scheme not in ('https'):  # connectivity board only supports https
+                if parsed_url.scheme not in ('https', 'http'):  # connectivity board only supports https / http
                     raise ValueError('Invalid URL scheme')
                 # Attempt to connect to the device
                 await asyncio.get_running_loop().run_in_executor(
