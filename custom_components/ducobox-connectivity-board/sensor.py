@@ -647,8 +647,8 @@ def _process_speed(value):
 def _process_pressure(value):
     """Process pressure values."""
     if value is not None:
-        # Value must be multiplied by .1 to get the true value.
-        return value * 10  # Assuming value is in Pa
+        # Shift decimal to the correct position.
+        return value * .1  # Assuming value is in Pa
     return None
 
 def _process_rssi(value):
