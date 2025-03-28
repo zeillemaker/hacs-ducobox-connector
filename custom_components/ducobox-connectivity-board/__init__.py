@@ -3,6 +3,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from .const import DOMAIN
 from ducopy import DucoPy
+from .model.coordinators import DucoboxCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,14 +19,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     try:
         duco_client = DucoPy(base_url=base_url, verify=False)
+        coordinator = DucoboxCoordinator(hass, duco_client)
         _LOGGER.debug(f"DucoPy initialized with base URL: {base_url}")
         hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][entry.entry_id] = duco_client
+        hass.data[DOMAIN][entry.entry_id] = {'client': duco_client, 'coordinator': coordinator}
     except Exception as ex:
         _LOGGER.error("Could not connect to Ducobox: %s", ex)
         raise ConfigEntryNotReady from ex
 
-    await hass.config_entries.async_forward_entry_setup(entry, "sensor")
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor", "number"])
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

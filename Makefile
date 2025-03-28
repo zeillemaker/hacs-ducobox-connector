@@ -22,7 +22,7 @@ build: ensure-paths
 	PUID=$(PUID) PGID=$(PGID) TZ=$(TZ) HA_CONF_DIR=$(HA_CONF_DIR) $(DC) pull
 
 # Start the Home Assistant container
-start: ensure-paths
+start: build
 	PUID=$(PUID) PGID=$(PGID) TZ=$(TZ) HA_CONF_DIR=$(HA_CONF_DIR) $(DC) up -d
 	@echo "Waiting for Home Assistant to be healthy..."
 	@until [ "$$($(DC) ps -q homeassistant | xargs docker inspect -f '{{.State.Health.Status}}')" = "healthy" ]; do \
