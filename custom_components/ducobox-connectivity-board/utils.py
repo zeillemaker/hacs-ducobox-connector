@@ -73,6 +73,6 @@ def process_timefilterremain(value):
 def process_bypass_position(value):
     """Process bypass position."""
     if value is not None:
-        # Assuming value ranges from 0 to 255, where 255 is 100%
-        return round((value / 255) * 100)
+        # Assuming value ranges from 0 to 100, where 100 is 100%
+        return int(round(float(value), 0))
     return None
