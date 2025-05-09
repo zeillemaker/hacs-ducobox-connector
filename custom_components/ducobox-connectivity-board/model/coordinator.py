@@ -9,9 +9,12 @@ from .devices import DucoboxSensorEntityDescription, DucoboxNodeSensorEntityDesc
 from .utils import safe_get
 from typing import Any
 from ducopy import DucoPy
+from ducopy.rest.models import ConfigNodeRequest
 import logging
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.device_registry import DeviceInfo
+import time
+import json
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,6 +31,7 @@ class DucoboxCoordinator(DataUpdateCoordinator):
         )
 
         self.duco_client = duco_client
+        self._static_data = None
 
     async def _async_update_data(self) -> dict:
         """Fetch data from the Ducobox API."""
@@ -36,6 +40,18 @@ class DucoboxCoordinator(DataUpdateCoordinator):
         except Exception as e:
             _LOGGER.error("Failed to fetch data from Ducobox API: %s", e)
             raise UpdateFailed(f"Failed to fetch data from Ducobox API: {e}") from e
+
+    async def _async_setup(self) -> None:
+        """Do initialization logic."""
+        self._static_data = await self.hass.async_add_executor_job(self._fetch_once_data)
+
+    def _fetch_once_data(self) -> dict:
+        data = {}
+        node_actions = self.duco_client.raw_get('/action/nodes')
+        data['action_nodes'] = node_actions
+        _LOGGER.debug(f"Data received from /action/nodes = {node_actions}")
+
+        return data
 
     def _fetch_data(self) -> dict:
         duco_client = self.duco_client
@@ -61,19 +77,49 @@ class DucoboxCoordinator(DataUpdateCoordinator):
             data['config_nodes'] = config_nodes
             _LOGGER.debug(f"Data received from /config/nodes = {data['config_nodes']}")
 
-            data['mappings'] = {'node_id_to_name': {}}
+            data['mappings'] = {'node_id_to_name': {}, 'node_id_to_type': {}}
             for node in data['nodes']:
                 node_id = node.get('Node')
                 node_type = safe_get(node, 'General', 'Type', 'Val') or 'Unknown'
-                node_addr = safe_get(node, 'General', 'Addr') or 'Unknown'
                 node_name = f"{node_id}:{node_type}"
 
                 data['mappings']['node_id_to_name'][node_id] = node_name
+                data['mappings']['node_id_to_type'][node_id] = node_type
 
 
-            return data
+            return {**data, **self._static_data}
         except Exception as e:
             _LOGGER.error("Error fetching data from Ducobox API: %s", e)
+            raise e
+
+    async def async_set_value(self, node_id, key, value):
+        """Send an update to the device."""
+        try:
+            data = json.dumps({
+                key: {'Val': int(round(value, 0))},
+            }, separators=(',', ':'))
+
+            logging.error(str(data))
+            logging.error(f'/config/nodes/{node_id}')
+            # Use the DucoPy client to update the configuration
+            await self.hass.async_add_executor_job(
+                self.duco_client.raw_patch, f'/config/nodes/{node_id}', data
+            )
+
+            _LOGGER.info(f"Successfully set value for node {node_id}, key {key} to {value}")
+        except Exception as e:
+            _LOGGER.error(f"Failed to set value for node {node_id}, key {key}: {e}")
+            raise
+
+    async def async_set_ventilation_state(self, node_id, option, action):
+        try:
+            await self.hass.async_add_executor_job(
+                self.duco_client.change_action_node, action, option, node_id
+            )
+            
+            _LOGGER.info(f"Successfully set config value for node {node_id}, action {action} to {option}")
+        except Exception as e:
+            _LOGGER.error(f"Failed to set config value for node {node_id}, action {action}: {e}")
             raise
 
 class DucoboxSensorEntity(CoordinatorEntity[DucoboxCoordinator], SensorEntity):

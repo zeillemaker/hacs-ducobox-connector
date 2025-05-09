@@ -10,7 +10,7 @@ from .const import DOMAIN
 
 from .model.utils import safe_get
 from .model.devices import SENSORS, NODE_SENSORS
-from .model.coordinators import DucoboxCoordinator, DucoboxSensorEntity, DucoboxNodeSensorEntity
+from .model.coordinator import DucoboxCoordinator, DucoboxSensorEntity, DucoboxNodeSensorEntity
 
 
 async def async_setup_entry(
@@ -20,7 +20,6 @@ async def async_setup_entry(
 ) -> None:
     """Set up Ducobox sensors from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]['coordinator']
-    await coordinator.async_config_entry_first_refresh()
 
     # Retrieve MAC address and format device ID and name
     mac_address = (

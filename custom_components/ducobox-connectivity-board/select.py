@@ -2,17 +2,12 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.components.number import NumberEntity, NumberMode
-
-from homeassistant.components.number import NumberEntity, NumberMode
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.components.select import SelectEntity
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN
 from .model.utils import safe_get
-from .model.coordinator import DucoboxCoordinator
 
 import logging
 
@@ -23,18 +18,13 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Ducobox numbers from a config entry."""
+    """Set up Ducobox select entities from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]['coordinator']
 
     # Retrieve MAC address and format device ID and name
     mac_address = (
         safe_get(coordinator.data, "info", "General", "Lan", "Mac", "Val") or "unknown_mac"
     )
-
-    if mac_address == 'unknown_mac':
-        # if no data -> stop adding device
-        return
-
     device_id = mac_address.replace(":", "").lower() if mac_address else "unknown_mac"
     device_name = f"{device_id}"
 
@@ -50,15 +40,15 @@ async def async_setup_entry(
         sw_version=safe_get(coordinator.data, "info", "General", "Board", "SwVersionBox", "Val") or "Unknown Version",
     )
 
-    entities: list[NumberEntity] = []
+    entities: list[SelectEntity] = []
 
-    # Add node numbers if data is available
-    number_nodes = safe_get(coordinator.data, 'config_nodes', 'Nodes')
-    for node in number_nodes:
+    action_nodes = safe_get(coordinator.data, 'action_nodes', 'Nodes')
+    for node in action_nodes:
         node_id = node['Node']
         node_type = safe_get(coordinator.data, 'mappings', 'node_id_to_type', node_id) or 'Unknown'
         mapped_node_name = safe_get(coordinator.data, 'mappings', 'node_id_to_name', node_id)
         node_name = f'{device_id}:{mapped_node_name}'
+
 
         # Create device info for the node
         node_device_id = f"{device_id}-{node_id}"
@@ -70,43 +60,35 @@ async def async_setup_entry(
             via_device=(DOMAIN, device_id),
         )
 
-        for key, value in node.items():
-            if isinstance(value, dict) and 'Val' in value and 'Min' in value and 'Max' in value and 'Inc' in value:
-                unique_id = f"{node_device_id}-{key}"
+        # Check for SetVentilationState action
+        for action in node.get('Actions', []):
+            if action['Action'] == 'SetVentilationState':
                 entities.append(
-                    DucoboxNumberEntity(
+                    DucoboxVentilationStateSelectEntity(
                         coordinator=coordinator,
                         node_id=node_id,
-                        description=key,
                         device_info=node_device_info,
-                        unique_id=unique_id,
-                        value=int(value['Val']),
-                        min_value=int(value['Min']),
-                        max_value=int(value['Max']),
-                        step=int(value['Inc'])
+                        unique_id=f"{node_device_id}-SetVentilationState",
+                        options=action['Enum'],
+                        action=action['Action']
                     )
                 )
 
     async_add_entities(entities)
 
+class DucoboxVentilationStateSelectEntity(SelectEntity):
+    """Representation of a Ducobox ventilation state select entity."""
 
-class DucoboxNumberEntity(CoordinatorEntity, NumberEntity):
-    """Representation of a Ducobox number entity."""
-
-    def __init__(self, coordinator, node_id, description, device_info, unique_id, value, min_value, max_value, step):
-        """Initialize the Ducobox number entity."""
-        super().__init__(coordinator)
+    def __init__(self, coordinator, node_id, device_info, unique_id, options, action):
+        """Initialize the Ducobox ventilation state select entity."""
         self._coordinator = coordinator
         self._node_id = node_id
-        self._description = description
+        self._action = action
         self._device_info = device_info
         self._attr_unique_id = unique_id
-        self._attr_name = f"{device_info['name']} {description}"
-        self._attr_native_value = value
-        self._attr_native_min_value = min_value
-        self._attr_native_max_value = max_value
-        self._attr_native_step = step
-        self._attr_mode = NumberMode.AUTO
+        self._attr_name = f"{device_info['name']} Ventilation State"
+        self._attr_options = options
+        self._attr_current_option = None  # You might want to fetch the current state from the coordinator
 
     @property
     def device_info(self):
@@ -114,13 +96,17 @@ class DucoboxNumberEntity(CoordinatorEntity, NumberEntity):
         return self._device_info
 
     @property
-    def native_value(self):
-        """Return the current value."""
-        return self._attr_native_value
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self._attr_current_option
 
-    async def async_set_native_value(self, value: float):
-        """Update the current value."""
-        self._attr_native_value = value
-        # Call the coordinator's update method
-        await self._coordinator.async_set_value(self._node_id, self._description, value)
+    @property
+    def options(self) -> list[str]:
+        """Return the available options."""
+        return self._attr_options
+
+    async def async_select_option(self, option: str) -> None:
+        """Change the selected option."""
+        self._attr_current_option = option
+        await self._coordinator.async_set_ventilation_state(self._node_id, option, self._action)
         self.async_write_ha_state()
