@@ -56,7 +56,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: process_temperature(
-            safe_get(data, 'Ventilation', 'Sensor', 'TempOda', 'Val')
+            safe_get(data, 'info', 'Ventilation', 'Sensor', 'TempOda', 'Val')
         ),
     ),
     # Sup = box -> house
@@ -67,7 +67,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: process_temperature(
-            safe_get(data, 'Ventilation', 'Sensor', 'TempSup', 'Val')
+            safe_get(data, 'info', 'Ventilation', 'Sensor', 'TempSup', 'Val')
         ),
     ),
     # Eta = house -> box
@@ -78,7 +78,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: process_temperature(
-            safe_get(data, 'Ventilation', 'Sensor', 'TempEta', 'Val')
+            safe_get(data, 'info', 'Ventilation', 'Sensor', 'TempEta', 'Val')
         ),
     ),
     # Eha = box -> outdoor
@@ -89,7 +89,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
         value_fn=lambda data: process_temperature(
-            safe_get(data, 'Ventilation', 'Sensor', 'TempEha', 'Val')
+            safe_get(data, 'info', 'Ventilation', 'Sensor', 'TempEha', 'Val')
         ),
     ),
     # Fan speed sensors
@@ -100,7 +100,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.SPEED,
         value_fn=lambda data: process_speed(
-            safe_get(data, 'Ventilation', 'Fan', 'SpeedSup', 'Val')
+            safe_get(data, 'info', 'Ventilation', 'Fan', 'SpeedSup', 'Val')
         ),
     ),
     DucoboxSensorEntityDescription(
@@ -110,7 +110,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.SPEED,
         value_fn=lambda data: process_speed(
-            safe_get(data, 'Ventilation', 'Fan', 'SpeedEha', 'Val')
+            safe_get(data, 'info', 'Ventilation', 'Fan', 'SpeedEha', 'Val')
         ),
     ),
     # Pressure sensors
@@ -121,7 +121,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.PRESSURE,
         value_fn=lambda data: process_pressure(
-            safe_get(data, 'Ventilation', 'Fan', 'PressSup', 'Val')
+            safe_get(data, 'info', 'Ventilation', 'Fan', 'PressSup', 'Val')
         ),
     ),
     DucoboxSensorEntityDescription(
@@ -131,7 +131,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.PRESSURE,
         value_fn=lambda data: process_pressure(
-            safe_get(data, 'Ventilation', 'Fan', 'PressEha', 'Val')
+            safe_get(data, 'info', 'Ventilation', 'Fan', 'PressEha', 'Val')
         ),
     ),
     # Wi-Fi signal strength
@@ -142,7 +142,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.SIGNAL_STRENGTH,
         value_fn=lambda data: process_rssi(
-            safe_get(data, 'General', 'Lan', 'RssiWifi', 'Val')
+            safe_get(data, 'info', 'General', 'Lan', 'RssiWifi', 'Val')
         ),
     ),
     # Device uptime
@@ -153,7 +153,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.DURATION,
         value_fn=lambda data: process_uptime(
-            safe_get(data, 'General', 'Board', 'UpTime', 'Val')
+            safe_get(data, 'info', 'General', 'Board', 'UpTime', 'Val')
         ),
     ),
     # Filter time remaining
@@ -164,7 +164,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.DURATION,
         value_fn=lambda data: process_timefilterremain(
-            safe_get(data, 'HeatRecovery', 'General', 'TimeFilterRemain', 'Val')
+            safe_get(data, 'info', 'HeatRecovery', 'General', 'TimeFilterRemain', 'Val')
         ),
     ),
     # Bypass position
@@ -174,7 +174,7 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: process_bypass_position(
-            safe_get(data, 'HeatRecovery', 'Bypass', 'Pos', 'Val')
+            safe_get(data, 'info', 'HeatRecovery', 'Bypass', 'Pos', 'Val')
         ),
     ),
     # Add additional sensors here if needed
