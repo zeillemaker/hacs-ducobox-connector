@@ -676,7 +676,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             key='IaqRh',
             name='Humidity Air Quality',
             native_unit_of_measurement=PERCENTAGE,
-            value_fn=lambda node: _process_node_iaq(
+            value_fn=lambda node: process_node_iaq(
                 safe_get(node, 'Sensor', 'data', 'IaqRh')
             ),
             sensor_key='IaqRh',
@@ -687,7 +687,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             name='Relative Humidity',
             native_unit_of_measurement=PERCENTAGE,
             device_class=SensorDeviceClass.HUMIDITY,
-            value_fn=lambda node: _process_node_iaq(
+            value_fn=lambda node: process_node_iaq(
                 safe_get(node, 'Sensor', 'data', 'Rh')
             ),
             sensor_key='Rh',
@@ -698,7 +698,7 @@ NODE_SENSORS: dict[str, list[DucoboxNodeSensorEntityDescription]] = {
             name='Temperature',
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
-            value_fn=lambda node: _process_node_temperature(
+            value_fn=lambda node: process_node_temperature(
                 safe_get(node, 'Sensor', 'data', 'Temp')
             ),
             sensor_key='Temp',
