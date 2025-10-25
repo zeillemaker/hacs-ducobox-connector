@@ -26,6 +26,7 @@ from homeassistant.const import (
     UnitOfTime,
     PERCENTAGE,
     CONCENTRATION_PARTS_PER_MILLION,
+    REVOLUTIONS_PER_MINUTE,
 )
 
 
@@ -96,9 +97,8 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
     DucoboxSensorEntityDescription(
         key="SpeedSup",
         name="Supply Fan Speed",
-        native_unit_of_measurement="RPM",
+        native_unit_of_measurement=REVOLUTIONS_PER_MINUTE,
         state_class=SensorStateClass.MEASUREMENT,
-        device_class=SensorDeviceClass.SPEED,
         value_fn=lambda data: process_speed(
             safe_get(data, 'info', 'Ventilation', 'Fan', 'SpeedSup', 'Val')
         ),
@@ -106,9 +106,8 @@ SENSORS: tuple[DucoboxSensorEntityDescription, ...] = (
     DucoboxSensorEntityDescription(
         key="SpeedEha",
         name="Exhaust Fan Speed",
-        native_unit_of_measurement="RPM",
+        native_unit_of_measurement=REVOLUTIONS_PER_MINUTE,
         state_class=SensorStateClass.MEASUREMENT,
-        device_class=SensorDeviceClass.SPEED,
         value_fn=lambda data: process_speed(
             safe_get(data, 'info', 'Ventilation', 'Fan', 'SpeedEha', 'Val')
         ),
